@@ -1,0 +1,82 @@
+version: '3.3'
+
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+
+  orchestrator:
+    build: 
+      context: .
+      dockerfile: services/orchestrator/Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - JARVISCORE_SEED_NODES=orchestrator:7946,explorer:7946,qa:7946,security:7946
+    depends_on:
+      - redis
+    volumes:
+      - ./agents:/app/agents
+      - ./report:/app/report
+      - ./services/orchestrator:/app/services/orchestrator
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+
+  explorer:
+    build: 
+      context: .
+      dockerfile: services/explorer/Dockerfile
+    ports:
+      - "8001:8001"
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - JARVISCORE_SEED_NODES=orchestrator:7946,explorer:7946,qa:7946,security:7946
+    depends_on:
+      - redis
+    volumes:
+      - ./agents:/app/agents
+      - ./services/explorer:/app/services/explorer
+    command: uvicorn main:app --host 0.0.0.0 --port 8001 --reload
+
+  qa:
+    build: 
+      context: .
+      dockerfile: services/qa/Dockerfile
+    ports:
+      - "8002:8002"
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - JARVISCORE_SEED_NODES=orchestrator:7946,explorer:7946,qa:7946,security:7946
+    depends_on:
+      - redis
+    volumes:
+      - ./agents:/app/agents
+      - ./services/qa:/app/services/qa
+    command: uvicorn main:app --host 0.0.0.0 --port 8002 --reload
+
+  security:
+    build: 
+      context: .
+      dockerfile: services/security/Dockerfile
+    ports:
+      - "8003:8003"
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - JARVISCORE_SEED_NODES=orchestrator:7946,explorer:7946,qa:7946,security:7946
+    depends_on:
+      - redis
+    volumes:
+      - ./agents:/app/agents
+      - ./services/security:/app/services/security
+    command: uvicorn main:app --host 0.0.0.0 --port 8003 --reload
+
+volumes:
+  redis_data:

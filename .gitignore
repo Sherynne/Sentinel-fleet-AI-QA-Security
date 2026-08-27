@@ -1,0 +1,16 @@
+.env
+.env.*
+!.env.example
+
+__pycache__/
+*.py[cod]
+*.log
+
+.venv/
+venv/
+env/
+
+.DS_Store
+
+*.backup
+sentinel-fleet.zip
